@@ -1,31 +1,106 @@
 class Product:
     name: str
     description: str
-    price: float
+    __price: float
     quantity: int
-
 
     def __init__(self, name, description, price, quantity):
         self.name = name
         self.description = description
+        self.__price = price
         self.price = price
         self.quantity = quantity
+
+    @classmethod
+    def new_product(cls, product_data, products_list=None):
+        """Создает новый продукт или обновляет существующий"""
+        name = product_data.get('name', '')
+        description = product_data.get('description', '')
+        price = product_data.get('price', 0)
+        quantity = product_data.get('quantity', 0)
+
+        if products_list:
+            for product in products_list:
+                if product.name.lower() == name.lower():
+                    product.quantity += quantity
+                    if price > product.price:
+                        product.price = price
+                    return product
+
+        return cls(name, description, price, quantity)
+
+    @property
+    def price(self):
+        """Геттер для цены"""
+        return self.__price
+
+    @price.setter
+    def price(self, new_price):
+        """Сеттер для цены с проверкой"""
+        if new_price <= 0:
+            print("Цена не должна быть нулевая или отрицательная")
+            return
+
+        if hasattr(self, '_Product__price') and new_price < self.__price:
+            response = input(f"Price is decreasing from {self.__price} to {new_price}. "
+                             f"Confirm change (y/n): ").strip().lower()
+            if response != 'y':
+                print("Изменение цены отменено")
+                return
+
+        self.__price = new_price
+        if hasattr(self, '_Product__price'):
+            print(f"Цена успешно изменена на {new_price}")
+
+    def __str__(self):
+        """Строковое представление продукта"""
+        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
+
 
 class Category:
     name: str
     description: str
-    products: list
+    __products: list
     category_count = 0
     product_count = 0
 
-
-    def __init__(self, name, description, products):
+    def __init__(self, name, description, products=None):
         self.name = name
         self.description = description
-        self.products = products
+        self.__products = []
         Category.category_count += 1
 
-        Category.product_count += len(products)
+        if products:
+            for product in products:
+                self.add_product(product)
+
+    def add_product(self, product):
+        """Добавляет продукт в категорию"""
+        if isinstance(product, Product):
+            for existing_product in self.__products:
+                if existing_product.name.lower() == product.name.lower():
+                    existing_product.quantity += product.quantity
+                    if product.price > existing_product.price:
+                        existing_product.price = product.price
+                    return
+
+            self.__products.append(product)
+            Category.product_count += 1
+        else:
+            print("Можно добавлять только объекты класса Product")
+
+    @property
+    def products(self):
+        """Геттер для списка продуктов"""
+        return [str(product) for product in self.__products]
+
+    def get_products(self):
+        """Возвращает список объектов продуктов"""
+        return self.__products
+
+    def __len__(self):
+        """Возвращает количество продуктов в категории"""
+        return len(self.__products)
 
 
 
