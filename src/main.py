@@ -3,13 +3,15 @@ class Product:
     description: str
     __price: float
     quantity: int
+    color: str
 
-    def __init__(self, name, description, price, quantity):
+    def __init__(self, name, description, price, quantity, color=None):
         self.name = name
         self.description = description
         self.__price = price
         self.price = price
         self.quantity = quantity
+        self.color = color
 
     @classmethod
     def new_product(cls, product_data, products_list=None):
@@ -65,8 +67,8 @@ class Product:
 
     def __add__(self, other):
         """Сложение продуктов (Задание 2)"""
-        if not isinstance(other, Product):
-            raise TypeError("Можно складывать только объекты класса Product")
+        if not isinstance(other, type(self)):
+            raise TypeError("Можно складывать только объекты одного класса: {type(self).__name__}")
 
         if self.name != other.name:
             raise ValueError("Можно складывать только одинаковые продукты")
@@ -74,11 +76,105 @@ class Product:
         total_quantity = self.quantity + other.quantity
         max_price = max(self.price, other.price)
 
-        return Product(self.name, self.description, max_price, total_quantity)
+        return type(self)(
+            self.name,
+            self.description,
+            max_price,
+            total_quantity
+        )
 
     def calculate_total_value(self):
         """Рассчитывает общую стоимость товара на складе"""
         return self.price * self.quantity
+
+
+class Smartphone(Product):
+    """Класс для смартфонов"""
+
+    def __init__(self, name, description, price, quantity, efficiency, model, memory, color):
+        super().__init__(name, description, price, quantity, color)
+        self.efficiency = efficiency
+        self.model = model
+        self.memory = memory
+
+    def __repr__(self):
+        """Представление для отладки"""
+        return (f"Smartphone('{self.name}', {self.price}, {self.quantity}, "
+                f"efficiency='{self.efficiency}', model='{self.model}', "
+                f"memory='{self.memory}', color='{self.color}')")
+
+    def __str__(self):
+        return f"{self.name} {self.model}, {self.memory} ГБ, цвет {self.color}, {self.price} руб. Остаток: {self.quantity} шт."
+
+    def __add__(self, other):
+        """Сложение смартфонов (Задание 2)"""
+        if not isinstance(other, type(self)):
+            raise TypeError(f"Можно складывать только объекты одного класса: {type(self).__name__}")
+
+        if self.name != other.name:
+            raise ValueError("Можно складывать только одинаковые продукты")
+
+        total_quantity = self.quantity + other.quantity
+        max_price = max(self.price, other.price)
+
+        return type(self)(
+            self.name,
+            self.description,
+            max_price,
+            total_quantity,
+            self.efficiency,
+            self.model,
+            self.memory,
+            self.color
+        )
+
+
+
+
+class LawnGrass(Product):
+    """Класс для газонной травы"""
+
+    country: str
+    germination_period: int
+
+
+    def __init__(self, name, description, price, quantity,
+                 country, germination_period, color):
+        super().__init__(name, description, price, quantity)
+        self.country = country
+        self.germination_period = germination_period
+        self.color = color
+
+    def __repr__(self):
+        """Представление для отладки"""
+        return (f"LawnGrass('{self.name}', {self.price}, {self.quantity}, "
+                f"country='{self.country}', germination_period='{self.germination_period}', "
+                f"color='{self.color}')")
+
+    def __str__(self):
+        """Строковое представление газонной травы"""
+        return f"{self.name}, {self.country}, цвет: {self.color}, прорастание: {self.germination_period}, {self.price} руб. Остаток: {self.quantity} шт."
+
+    def __add__(self, other):
+        """Сложение газонной травы (Задание 2)"""
+        if not isinstance(other, type(self)):
+            raise TypeError(f"Можно складывать только объекты одного класса: {type(self).__name__}")
+
+        if self.name != other.name:
+            raise ValueError("Можно складывать только одинаковые продукты")
+
+        total_quantity = self.quantity + other.quantity
+        max_price = max(self.price, other.price)
+
+        return type(self)(
+            self.name,
+            self.description,
+            max_price,
+            total_quantity,
+            self.country,
+            self.germination_period,
+            self.color
+        )
 
 
 class CategoryIterator:
@@ -97,7 +193,6 @@ class CategoryIterator:
             self.index += 1
             return product
         raise StopIteration
-
 
 
 class Category:
@@ -119,18 +214,21 @@ class Category:
 
     def add_product(self, product):
         """Добавляет продукт в категорию"""
-        if isinstance(product, Product):
-            for existing_product in self.__products:
-                if existing_product.name.lower() == product.name.lower():
-                    existing_product.quantity += product.quantity
-                    if product.price > existing_product.price:
-                        existing_product.price = product.price
-                    return
+        if not isinstance(product, Product):
+            raise TypeError("Можно добавлять только объекты класса Product или его наследников")
 
-            self.__products.append(product)
-            Category.product_count += 1
-        else:
-            print("Можно добавлять только объекты класса Product")
+        if not issubclass(type(product), Product):
+            raise TypeError("Можно добавлять только объекты класса Product или его наследников")
+
+        for existing_product in self.__products:
+            if existing_product.name.lower() == product.name.lower():
+                existing_product.quantity += product.quantity
+                if product.price > existing_product.price:
+                    existing_product.price = product.price
+                return
+
+        self.__products.append(product)
+        Category.product_count += 1
 
     @property
     def products(self):
