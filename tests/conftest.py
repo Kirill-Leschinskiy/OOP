@@ -82,3 +82,9 @@ def sample_lawn_grass():
 def sample_mixed_products(sample_product, sample_smartphone, sample_lawn_grass):
     """Фикстура для смешанного списка продуктов"""
     return [sample_product, sample_smartphone, sample_lawn_grass]
+
+@pytest.fixture
+def sample_order(sample_product):
+    """Фикстура для создания тестового заказа"""
+    from src.main import Order
+    return Order(sample_product, 3)
