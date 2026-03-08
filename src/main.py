@@ -1,16 +1,158 @@
-class Product:
+from abc import ABC, abstractmethod
+
+
+class BaseProduct(ABC):
+    """Абстрактный базовый класс для всех продуктов"""
+
+    def __init__(self, name, description, price, quantity):
+        """Инициализация продукта"""
+        self.name = name
+        self.description = description
+        self._price = price
+        self.quantity = quantity
+
+    @abstractmethod
+    def __str__(self):
+        """Строковое представление продукта"""
+        pass
+
+    @abstractmethod
+    def calculate_total_value(self):
+        """Рассчитывает общую стоимость товара на складе"""
+        pass
+
+    @property
+    def price(self):
+        """Геттер для цены"""
+        return self._price
+
+    @price.setter
+    def price(self, new_price):
+        """Сеттер для цены"""
+        self._price = new_price
+
+    @classmethod
+    @abstractmethod
+    def new_product(cls, product_data, products_list=None):
+        """Создает новый продукт или обновляет существующий"""
+        pass
+
+    @abstractmethod
+    def __add__(self, other):
+        """Сложение продуктов"""
+        pass
+
+
+class ReprMixin:
+    """Миксин для логирования создания объектов"""
+
+    def __init__(self, *args, **kwargs):
+        """Инициализация с логированием"""
+
+        super().__init__(*args, **kwargs)
+
+        if hasattr(self, '_init_params'):
+            class_name = self.__class__.__name__
+            params = self._init_params
+            param_str = ', '.join([f"{k}={v!r}" for k, v in params.items()])
+            print(f"Создан объект: {class_name}({param_str})")
+
+
+
+    def __repr__(self):
+        """Представление объекта для отладки"""
+        if hasattr(self, '_init_params'):
+            params = self._init_params
+            param_str = ', '.join([f"{k}={v!r}" for k, v in params.items()])
+            return f"{self.__class__.__name__}({param_str})"
+        return super().__repr__()
+
+
+class BaseEntity(ABC):
+    """Абстрактный базовый класс для сущностей с общими свойствами"""
+
+    def __init__(self, name):
+        """Инициализация сущности"""
+        self._name = name
+
+    @property
+    def name(self):
+        """Геттер для имени"""
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        """Сеттер для имени"""
+        if not value:
+            raise ValueError("Имя не может быть пустым")
+        self._name = value
+
+    @abstractmethod
+    def __str__(self):
+        """Строковое представление"""
+        pass
+
+    @abstractmethod
+    def __repr__(self):
+        """Представление для отладки"""
+        pass
+
+
+class Order(BaseEntity):
+    """Класс для заказа"""
+
+    def __init__(self, product, quantity):
+        """
+        Инициализация заказа
+        param product - объект продукта
+        param quantity - количество
+        """
+        super().__init__(f"Заказ: {product.name}")
+        self.product = product
+        self.quantity = quantity
+        self.total_cost = self.calculate_total()
+
+    def calculate_total(self):
+        """Рассчитывает итоговую стоимость заказа"""
+        return self.product.price * self.quantity
+
+    def __str__(self):
+        """Строковое представление заказа"""
+        return (f"{self.name}, товар: {self.product.name}, "
+                f"количество: {self.quantity}, сумма: {self.total_cost} руб.")
+
+    def __repr__(self):
+        """Представление для отладки"""
+        return f"Order(product={self.product!r}, quantity={self.quantity})"
+
+    @property
+    def total(self):
+        """Геттер для общей стоимости"""
+        return self.total_cost
+
+    @total.setter
+    def total(self, value):
+        """Сеттер для общей стоимости (пересчитывает при изменении)"""
+        if value != self.calculate_total():
+            self.total_cost = value
+
+class Product(ReprMixin, BaseProduct):
     name: str
     description: str
-    __price: float
     quantity: int
     color: str
 
     def __init__(self, name, description, price, quantity, color=None):
-        self.name = name
-        self.description = description
-        self.__price = price
-        self.price = price
-        self.quantity = quantity
+        if not hasattr(self, '_init_params'):
+            self._init_params = {
+                'name': name,
+                'description': description,
+                'price': price,
+                'quantity': quantity,
+                'color': color
+            }
+
+        super().__init__(name, description, price, quantity)
         self.color = color
 
     @classmethod
@@ -34,7 +176,7 @@ class Product:
     @property
     def price(self):
         """Геттер для цены"""
-        return self.__price
+        return self._price
 
     @price.setter
     def price(self, new_price):
@@ -43,9 +185,9 @@ class Product:
             print("Цена не должна быть нулевая или отрицательная")
             return
 
-        if hasattr(self, '_Product__price') and new_price < self.__price:
+        if hasattr(self, '_price') and new_price < self._price:
             try:
-                response = input(f"Price is decreasing from {self.__price} to {new_price}. "
+                response = input(f"Price is decreasing from {self._price} to {new_price}. "
                                  f"Confirm change (y/n): ").strip().lower()
                 if response != 'y':
                     print("Изменение цены отменено")
@@ -54,7 +196,7 @@ class Product:
                 print("Изменение цены отменено")
                 return
 
-        self.__price = new_price
+        self._price = new_price
 
 
     def __str__(self):
@@ -80,7 +222,8 @@ class Product:
             self.name,
             self.description,
             max_price,
-            total_quantity
+            total_quantity,
+            self.color
         )
 
     def calculate_total_value(self):
@@ -92,6 +235,17 @@ class Smartphone(Product):
     """Класс для смартфонов"""
 
     def __init__(self, name, description, price, quantity, efficiency, model, memory, color):
+        self._init_params = {
+            'name': name,
+            'description': description,
+            'price': price,
+            'quantity': quantity,
+            'efficiency': efficiency,
+            'model': model,
+            'memory': memory,
+            'color': color
+        }
+
         super().__init__(name, description, price, quantity, color)
         self.efficiency = efficiency
         self.model = model
@@ -140,10 +294,19 @@ class LawnGrass(Product):
 
     def __init__(self, name, description, price, quantity,
                  country, germination_period, color):
-        super().__init__(name, description, price, quantity)
+        self._init_params = {
+            'name': name,
+            'description': description,
+            'price': price,
+            'quantity': quantity,
+            'country': country,
+            'germination_period': germination_period,
+            'color': color
+        }
+
+        super().__init__(name, description, price, quantity, color)
         self.country = country
         self.germination_period = germination_period
-        self.color = color
 
     def __repr__(self):
         """Представление для отладки"""
