@@ -88,3 +88,10 @@ def sample_order(sample_product):
     """Фикстура для создания тестового заказа"""
     from src.main import Order
     return Order(sample_product, 3)
+
+@pytest.fixture
+def sample_product_with_zero_quantity():
+    """Фикстура для создания продукта с нулевым количеством (для тестов исключений)"""
+    product = Product("Телефон", "Смартфон", 50000.0, 1)
+    product.quantity = 0
+    return product
