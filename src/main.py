@@ -1,6 +1,13 @@
 from abc import ABC, abstractmethod
 
 
+class ZeroQuantityError(Exception):
+    """Исключение для товаров с нулевым количеством"""
+
+    def __init__(self, message="Товар с нулевым количеством не может быть добавлен"):
+        self.message = message
+        super().__init__(self.message)
+
 class BaseProduct(ABC):
     """Абстрактный базовый класс для всех продуктов"""
 
@@ -9,6 +16,9 @@ class BaseProduct(ABC):
         self.name = name
         self.description = description
         self._price = price
+
+        if quantity <= 0:
+            raise ValueError("Товар с нулевым количеством не может быть добавлен")
         self.quantity = quantity
 
     @abstractmethod
@@ -108,9 +118,25 @@ class Order(BaseEntity):
         param quantity - количество
         """
         super().__init__(f"Заказ: {product.name}")
+
+        try:
+            self.add_product_to_order(product, quantity)
+        except ZeroQuantityError as e:
+            print(f"Ошибка: {e}")
+            raise
+        finally:
+            print("Обработка добавления товара в заказ завершена")
+
+        self.total_cost = self.calculate_total()
+
+    def add_product_to_order(self, product, quantity):
+        """Добавляет товар в заказ с проверкой количества"""
+        if quantity <= 0:
+            raise ZeroQuantityError("Товар с нулевым количеством не может быть добавлен в заказ")
+
         self.product = product
         self.quantity = quantity
-        self.total_cost = self.calculate_total()
+        print("Товар успешно добавлен в заказ")
 
     def calculate_total(self):
         """Рассчитывает итоговую стоимость заказа"""
@@ -208,7 +234,7 @@ class Product(ReprMixin, BaseProduct):
         return f"Product({self.name}', {self.price}, {self.quantity})"
 
     def __add__(self, other):
-        """Сложение продуктов (Задание 2)"""
+        """Сложение продуктов"""
         if not isinstance(other, type(self)):
             raise TypeError("Можно складывать только объекты одного класса: {type(self).__name__}")
 
@@ -261,7 +287,7 @@ class Smartphone(Product):
         return f"{self.name} {self.model}, {self.memory} ГБ, цвет {self.color}, {self.price} руб. Остаток: {self.quantity} шт."
 
     def __add__(self, other):
-        """Сложение смартфонов (Задание 2)"""
+        """Сложение смартфонов"""
         if not isinstance(other, type(self)):
             raise TypeError(f"Можно складывать только объекты одного класса: {type(self).__name__}")
 
@@ -319,7 +345,7 @@ class LawnGrass(Product):
         return f"{self.name}, {self.country}, цвет: {self.color}, прорастание: {self.germination_period}, {self.price} руб. Остаток: {self.quantity} шт."
 
     def __add__(self, other):
-        """Сложение газонной травы (Задание 2)"""
+        """Сложение газонной травы"""
         if not isinstance(other, type(self)):
             raise TypeError(f"Можно складывать только объекты одного класса: {type(self).__name__}")
 
@@ -341,7 +367,7 @@ class LawnGrass(Product):
 
 
 class CategoryIterator:
-    """Итератор для перебора товаров в категории (Дополнительное задание)"""
+    """Итератор для перебора товаров в категории"""
 
     def __init__(self, category):
         self.category = category
@@ -383,15 +409,20 @@ class Category:
         if not issubclass(type(product), Product):
             raise TypeError("Можно добавлять только объекты класса Product или его наследников")
 
+        if product.quantity <= 0:
+            raise ZeroQuantityError("Товар с нулевым количеством не может быть добавлен в категорию")
+
         for existing_product in self.__products:
             if existing_product.name.lower() == product.name.lower():
                 existing_product.quantity += product.quantity
                 if product.price > existing_product.price:
                     existing_product.price = product.price
+                print("Товар успешно добавлен в категорию (обновлен существующий)")
                 return
 
         self.__products.append(product)
         Category.product_count += 1
+        print("Товар успешно добавлен в категорию")
 
     @property
     def products(self):
@@ -407,7 +438,7 @@ class Category:
         return len(self.__products)
 
     def __str__(self):
-        """Строковое представление категории (Задание 1)"""
+        """Строковое представление категории"""
         total_quantity = sum(product.quantity for product in self.__products)
         return f"{self.name}, количество продуктов: {total_quantity} шт."
 
@@ -416,8 +447,22 @@ class Category:
         return f"Category(name='{self.name}', products={len(self.__products)})"
 
     def __iter__(self):
-        """Возвращает итератор для категории (Дополнительное задание)"""
+        """Возвращает итератор для категории"""
         return CategoryIterator(self)
+
+    def get_average_price(self):
+        """
+        Подсчитывает средний ценник всех товаров в категории
+        Если в категории нет товаров, возвращает 0
+        """
+        try:
+            if len(self.__products) == 0:
+                return 0
+
+            total_price = sum(product.price for product in self.__products)
+            return total_price / len(self.__products)
+        except ZeroDivisionError:
+            return 0
 
 
 
